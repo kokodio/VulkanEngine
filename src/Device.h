@@ -3,6 +3,7 @@
 #include <fstream>
 #include <optional>
 #include <set>
+#include <algorithm>
 
 struct SwapChainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
@@ -155,7 +156,7 @@ static std::vector<char> ReadFile(const std::string& filename) {
         throw std::runtime_error("failed to open file!");
     }
 
-    size_t size = file.tellg();
+    const auto size = file.tellg();
     std::vector<char> buffer(size);
 
     file.seekg(0);

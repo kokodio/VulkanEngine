@@ -1,10 +1,11 @@
 #pragma once
 
+#include <array>
 #include <iostream>
 #include <vector>
+#include <volk.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
-#include <vulkan/vulkan_core.h>
 #include "Window.h"
 
 class App {
@@ -42,7 +43,7 @@ public:
         vkDestroyDevice(device, nullptr);
 
         if constexpr (enableValidationLayers) {
-            DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+            vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
         }
 
         vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -119,6 +120,8 @@ private:
 
     void SetupDebugMessenger();
 
+    void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &ci);
+
     void CreateSurface();
 
     void PickPhysicalDevice();
@@ -145,16 +148,6 @@ private:
 
 
     VkShaderModule CreateShaderModule(const std::vector<char> &code);
-
-    static void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
-
-    static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
-                                                 const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-                                                 const VkAllocationCallbacks *pAllocator,
-                                                 VkDebugUtilsMessengerEXT *pDebugMessenger);
-
-    static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
-                                              const VkAllocationCallbacks *pAllocator);
 
     static bool CheckValidationLayerSupport();
 

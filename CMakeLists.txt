@@ -1,12 +1,16 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.28)
 project(VulkanEngine)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
     if(MINGW)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
     endif()
-#    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+    #    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
+if (WIN32)
+    set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
+endif()
+add_subdirectory(volk)
 
 set(CMAKE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -42,7 +46,6 @@ CPMAddPackage(
         "SDL_CAMERA OFF"
 )
 CPMAddPackage("gh:g-truc/glm#1.0.1")
-
 find_package(Vulkan REQUIRED)
 
 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS
@@ -64,12 +67,13 @@ set(EXECUTABLE_NAME ${PROJECT_NAME})
 add_executable(${PROJECT_NAME} ${SRC_FILES} ${HEADER_FILES})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-        Vulkan::Vulkan
+        volk
         SDL3::SDL3
         glm
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE
         GLM_FORCE_DEPTH_ZERO_TO_ONE
+        VK_NO_PROTOTYPES
         GLM_FORCE_RADIANS
 )
 target_precompile_headers(${PROJECT_NAME} PRIVATE
@@ -80,7 +84,7 @@ target_precompile_headers(${PROJECT_NAME} PRIVATE
         <unordered_map>
         <glm/mat4x4.hpp>
         <glm/vec4.hpp>
-        <vulkan/vulkan.h>
+        <volk.h>
 )
 
 foreach (GLSL IN LISTS GLSL_SOURCE_FILES)

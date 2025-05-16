@@ -1,10 +1,9 @@
 #include "App.h"
 #include "Device.h"
 #include <fstream>
-#include <iostream>
 #include <set>
 #include <vector>
-#include <vulkan/vulkan.hpp>
+#include <volk.h>
 
 void App::Event(const SDL_Event *event) {
     if (event->type == SDL_EVENT_QUIT) running = false;
@@ -60,11 +59,14 @@ void App::Init() {
 }
 
 void App::InitVulkan() {
+    volkInitialize();
     CreateVkInstance();
+    volkLoadInstance(instance);
     SetupDebugMessenger();
     CreateSurface();
     PickPhysicalDevice();
     CreateLogicalDevice();
+    volkLoadDevice(device);
     CreateSwapChain();
     CreateImageViews();
     CreateRenderPass();
@@ -124,7 +126,7 @@ void App::CreateVkInstance() {
     appInfo.pEngineName = "Engine";
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
+    appInfo.apiVersion = VK_API_VERSION_1_1;
 
 
     VkInstanceCreateInfo createInfo = {};
@@ -157,7 +159,7 @@ void App::SetupDebugMessenger() {
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     PopulateDebugMessengerCreateInfo(createInfo);
 
-    if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+    if (vkCreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
         throw std::runtime_error("failed to set up debug messenger!");
     }
 }
@@ -172,25 +174,6 @@ void App::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &c
                              VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                              VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     createInfo.pfnUserCallback = debugCallback;
-}
-
-VkResult App::CreateDebugUtilsMessengerEXT(const VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-                                           const VkAllocationCallbacks *pAllocator,
-                                           VkDebugUtilsMessengerEXT *pDebugMessenger) {
-    if (const auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(
-        instance, "vkCreateDebugUtilsMessengerEXT")); func != nullptr) {
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    } else {
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-    }
-}
-
-void App::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
-                                        const VkAllocationCallbacks *pAllocator) {
-    if (const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(
-        instance, "vkDestroyDebugUtilsMessengerEXT")); func != nullptr) {
-        func(instance, debugMessenger, pAllocator);
-    }
 }
 
 void App::PickPhysicalDevice() {
@@ -271,6 +254,7 @@ void App::CreateSwapChain() {
     const VkExtent2D extent = ChooseSwapExtent(swapChainSupport.capabilities, window.getWindow());
 
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount;
+    if constexpr (enableValidationLayers) SDL_Log("Swapchain Size: %d", imageCount);
 
     VkSwapchainCreateInfoKHR swapChainCreateInfo = {};
     swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -350,7 +334,7 @@ void App::CreateRenderPass() {
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
